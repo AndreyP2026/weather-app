@@ -7,8 +7,6 @@ on:
 
 jobs:
   build:
-    # ВАЖНО: Используем ubuntu-22.04 вместо ubuntu-latest (который теперь 24.04)
-    # Это гарантирует совместимость с Android NDK r25b и Buildozer
     runs-on: ubuntu-22.04
     
     steps:
@@ -29,12 +27,12 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        # Убрали проблемные gstreamer и лишние медиа-библиотеки. 
+        # Оставили только то, что реально нужно для Kivy и Buildozer.
         sudo apt-get install -y \
           python3-pip build-essential git python3 python3-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-          libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
-          zlib1g-dev libgstreamer1.0-dev gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good autoconf libtool pkg-config libffi-dev \
+          libportmidi-dev zlib1g-dev autoconf libtool pkg-config libffi-dev \
           unzip wget cmake ninja-build patch
     
     - name: Install Python dependencies
@@ -66,7 +64,7 @@ jobs:
     
     - name: Build APK
       run: |
-        # Полная очистка старых кэшей, чтобы избежать конфликтов
+        # Полная очистка старых кэшей
         rm -rf ~/.buildozer/android/platform/build-*
         buildozer -v android debug
     

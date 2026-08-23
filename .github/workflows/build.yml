@@ -1,13 +1,12 @@
 name: Build APK
 
 on:
-  workflow_dispatch: # Позволяет запускать сборку вручную
+  workflow_dispatch:
   push:
-    branches: [ main ] # Автоматический запуск при пуше в ветку main
+    branches: [ main ]
 
 jobs:
   build:
-    # ВАЖНО: Используем ubuntu-22.04, а не ubuntu-latest (который сейчас 24.04)
     runs-on: ubuntu-22.04
     
     steps:
@@ -28,8 +27,6 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        # Минимальный набор зависимостей. Убраны gstreamer и лишние медиа-библиотеки, 
-        # которые вызывали конфликты (exit code 100). Для Kivy этого достаточно.
         sudo apt-get install -y \
           python3-pip build-essential git python3 python3-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
@@ -51,8 +48,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # ВАЖНО: python3 без версии! p4a сам подберет совместимую пару hostpython3/python3
-        requirements = python3,kivy==2.3.0,requests,pyjnius,android
+        # ВАЖНО: просто kivy без версии! p4a скомпилирует из исходников
+        requirements = python3,kivy,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -61,25 +58,21 @@ jobs:
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        p4a.branch = master
+        # КЛЮЧЕВОЕ: используем develop вместо master для стабильного Python 3.11
+        p4a.branch = develop
         EOF
     
     - name: Build APK
       run: |
-        # Полная очистка старых кэшей для предотвращения конфликтов
         rm -rf ~/.buildozer/android/platform/build-*
-        
-        # Запускаем сборку и перенаправляем весь вывод (включая ошибки) в файл
-        # || true предотвращает мгновенный обрыв шага, позволяя нам проверить лог
         buildozer -v android debug 2>&1 | tee build_output.log || true
         
-        # Если в логе есть фраза о провале, принудительно завершаем шаг с ошибкой
         if grep -q "Buildozer failed to execute" build_output.log; then
-          echo "Сборка завершилась с ошибкой. Лог сохранен в артефакты."
+          echo "Сборка завершилась с ошибкой. Лог сохранен."
           exit 1
         fi
     
-    - name: Upload APK artifact (если сборка успешна)
+    - name: Upload APK artifact (если успешно)
       if: success()
       uses: actions/upload-artifact@v4
       with:
@@ -87,7 +80,7 @@ jobs:
         path: bin/*.apk
         retention-days: 7
 
-    - name: Upload Full Error Log (если сборка упала)
+    - name: Upload Full Error Log (если упало)
       if: failure()
       uses: actions/upload-artifact@v4
       with:

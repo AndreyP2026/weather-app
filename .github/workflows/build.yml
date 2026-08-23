@@ -48,8 +48,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: фиксируем стабильный Python 3.11.9 для Android
-        requirements = python3==3.11.9,kivy==2.3.0,requests,pyjnius,android
+        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: убрали "==3.11.9". Теперь p4a сам выберет согласованную стабильную версию.
+        requirements = python3,kivy==2.3.0,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21

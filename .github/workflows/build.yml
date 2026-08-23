@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'  # ИЗМЕНЕНО: используем Python 3.10 вместо 3.11
+        python-version: '3.11'
     
     - name: Install system dependencies
       run: |
@@ -48,7 +48,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        requirements = python3,kivy==2.2.1,requests,pyjnius,android
+        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: фиксируем стабильный Python 3.11.9 для Android
+        requirements = python3==3.11.9,kivy==2.3.0,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -58,7 +59,6 @@ jobs:
         fullscreen = 0
         log_level = 2
         p4a.branch = master
-        # ИЗМЕНЕНО: используем master вместо develop
         EOF
     
     - name: Build APK

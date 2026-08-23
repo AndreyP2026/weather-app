@@ -27,8 +27,6 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        # Убрали проблемные gstreamer и лишние медиа-библиотеки. 
-        # Оставили только то, что реально нужно для Kivy и Buildozer.
         sudo apt-get install -y \
           python3-pip build-essential git python3 python3-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
@@ -50,7 +48,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        requirements = python3,kivy==2.3.0,requests,pyjnius,android
+        # ИЗМЕНЕНО: используем стабильную версию Kivy 2.2.1
+        requirements = python3,kivy==2.2.1,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -64,13 +63,26 @@ jobs:
     
     - name: Build APK
       run: |
-        # Полная очистка старых кэшей
         rm -rf ~/.buildozer/android/platform/build-*
-        buildozer -v android debug
+        buildozer -v android debug 2>&1 | tee build_output.log || true
+        
+        if grep -q "Buildozer failed to execute" build_output.log; then
+          echo "Сборка завершилась с ошибкой. Лог сохранен."
+          exit 1
+        fi
     
-    - name: Upload APK artifact
+    - name: Upload APK artifact (если успешно)
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: weather-app-apk
         path: bin/*.apk
+        retention-days: 7
+
+    - name: Upload Full Error Log (если упало)
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: buildozer-full-error-log
+        path: build_output.log
         retention-days: 7

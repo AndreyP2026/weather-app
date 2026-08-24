@@ -7,6 +7,7 @@ on:
 
 jobs:
   build:
+    # КРИТИЧЕСКИ ВАЖНО: Только ubuntu-22.04. ubuntu-latest (24.04) ломает сборку NDK.
     runs-on: ubuntu-22.04
     
     steps:
@@ -27,6 +28,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        # Минимальный набор. Убраны все лишние медиа-библиотеки, вызывающие конфликты.
         sudo apt-get install -y \
           python3-pip build-essential git python3 python3-dev \
           libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
@@ -36,6 +38,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel packaging
+        # Конкретная версия Cython критически важна для Kivy
         python -m pip install cython==0.29.33 buildozer
     
     - name: Create buildozer.spec
@@ -48,8 +51,9 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # ВАЖНО: просто kivy без версии! p4a скомпилирует из исходников
-        requirements = python3,kivy,requests,pyjnius,android
+        # ВАЖНО: Никаких версий для python3, pyjnius и android! 
+        # Buildozer сам скомпилирует их из проверенных рецептов.
+        requirements = python3,kivy==2.3.0,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -58,17 +62,21 @@ jobs:
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        # КЛЮЧЕВОЕ: используем develop вместо master для стабильного Python 3.11
-        p4a.branch = develop
+        # Используем master, так как он стабильнее для простых приложений
+        p4a.branch = master
         EOF
     
     - name: Build APK
       run: |
+        # Полная очистка кэша перед сборкой
         rm -rf ~/.buildozer/android/platform/build-*
+        
+        # Запускаем сборку и сохраняем ВЕСЬ лог в файл
         buildozer -v android debug 2>&1 | tee build_output.log || true
         
+        # Если в логе есть признак провала, принудительно завершаем шаг
         if grep -q "Buildozer failed to execute" build_output.log; then
-          echo "Сборка завершилась с ошибкой. Лог сохранен."
+          echo "Сборка завершилась с ошибкой. Лог сохранен в артефакты."
           exit 1
         fi
     

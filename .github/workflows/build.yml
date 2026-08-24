@@ -48,8 +48,8 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # Используем стабильную связку Python 3.11.9 + Kivy 2.2.1
-        requirements = python3==3.11.9,kivy==2.2.1,requests,pyjnius,android
+        # ВАЖНО: просто python3, без версии! Версию задаем ниже через p4a.python_version
+        requirements = python3,kivy==2.2.1,requests,pyjnius,android
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -58,25 +58,20 @@ jobs:
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        # Ветка develop содержит исправление бага с несовпадением версий hostpython3
-        p4a.branch = develop
-        # МАГИЧЕСКАЯ СТРОКА: принудительно заставляет и hostpython3, и python3 использовать 3.11
+        p4a.branch = master
+        # МАГИЧЕСКАЯ ДИРЕКТИВА: заставляет и hostpython3, и python3 использовать 3.11
         p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        # ЯДЕРНАЯ ОЧИСТКА: удаляем ВЕСЬ кэш buildozer, чтобы гарантированно 
-        # избавиться от любых следов Python 3.14.2 и начать с чистого листа.
-        echo "Очистка кэша buildozer..."
+        echo "Полная очистка кэша Buildozer..."
         rm -rf ~/.buildozer
         
-        # Запускаем сборку и сохраняем ВЕСЬ лог в файл
         buildozer -v android debug 2>&1 | tee build_output.log || true
         
-        # Если в логе есть признак провала, принудительно завершаем шаг
         if grep -q "Buildozer failed to execute" build_output.log; then
-          echo "Сборка завершилась с ошибкой. Лог сохранен в артефакты."
+          echo "Сборка завершилась с ошибкой. Лог сохранен."
           exit 1
         fi
     

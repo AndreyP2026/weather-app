@@ -48,10 +48,9 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Убрали pyjnius и android! 
-        # p4a автоматически добавит их через надежные внутренние рецепты компиляции.
-        # Это предотвращает ошибочную попытку pip install.
-        requirements = python3,kivy==2.3.0,requests
+        # КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Никаких версий! Пусть p4a сам разрешит зависимости.
+        # Это предотвращает IndexError в парсере рецептов.
+        requirements = python3,kivy,requests
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
@@ -60,14 +59,14 @@ jobs:
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        p4a.branch = develop
-        # МАГИЧЕСКАЯ ДИРЕКТИВА: жестко фиксирует Python 3.11 для всего процесса сборки
+        p4a.branch = master
+        # Принудительно фиксируем Python 3.11, чтобы избежать бага с 3.14
         p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        echo "Полная очистка кэша Buildozer..."
+        echo "Полная очистка кэша Buildozer для чистого старта..."
         rm -rf ~/.buildozer
         
         buildozer -v android debug 2>&1 | tee build_output.log || true

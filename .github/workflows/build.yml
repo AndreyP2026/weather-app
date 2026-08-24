@@ -49,32 +49,27 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # ТРОЙНОЙ ЗАМОК ОТ PYTHON 3.14:
-        # 1. Жестко задаем версию python3 в требованиях
-        requirements = python3==3.11.9,kivy==2.2.1,requests
+        # ЖЁСТКАЯ ФИКСАЦИЯ: указываем версию И для целевого, И для хост-питона.
+        # Kivy 2.2.1 НЕ использует libthorvg, поэтому мы избегаем бага с этим рецептом.
+        requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
         
-        # 2. Используем NDK 25b (удовлетворяет требованию ">= 25" и идеален для Kivy 2.2.1)
+        # NDK 25b: удовлетворяет требованию ">= 25" и является самым стабильным для этой связки
         android.ndk = 25b
         android.accept_sdk_license = True
         
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        
-        # 3. Используем ветку develop (она корректно обрабатывает фиксацию версий Python)
-        p4a.branch = develop
-        
-        # 4. Дополнительная явная директива для p4a
-        p4a.python_version = 3.11
+        p4a.branch = master
         EOF
     
     - name: Build APK
       run: |
-        echo "КРИТИЧЕСКИ ВАЖНО: Полное уничтожение кэша для удаления следов Python 3.14..."
+        echo "КРИТИЧЕСКИ ВАЖНО: Полное уничтожение кэша для удаления следов Python 3.14 и сломанных сборок..."
         rm -rf ~/.buildozer
         rm -rf .buildozer
         

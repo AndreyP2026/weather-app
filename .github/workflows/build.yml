@@ -48,13 +48,14 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # Используем стабильную версию Kivy
+        # КЛЮЧЕВОЕ РЕШЕНИЕ: Kivy 2.2.1 НЕ использует libthorvg!
+        # Это позволяет нам использовать NDK 27+, избегая сломанного рецепта.
         requirements = python3,kivy==2.2.1,requests
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
-        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: NDK r23b. Это обходит баг с путями clang в рецепте libthorvg.
-        android.ndk = 23b
+        # NDK 27c удовлетворяет требованию "минимум 25" и стабилен для API 33
+        android.ndk = 27c
         android.accept_sdk_license = True
         orientation = portrait
         fullscreen = 0
@@ -64,7 +65,7 @@ jobs:
     
     - name: Build APK
       run: |
-        echo "Полная очистка кэша Buildozer (удаляем старый NDK r25b)..."
+        echo "Полная очистка кэша Buildozer (удаляем старые NDK)..."
         rm -rf ~/.buildozer
         
         buildozer -v android debug 2>&1 | tee build_output.log || true

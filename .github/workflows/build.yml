@@ -48,25 +48,23 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: НИКАКИХ ВЕРСИЙ! 
-        # Это обходит баг IndexError в парсере p4a.
-        # p4a сам выберет стабильный Python и корректно скомпилирует kivy, pyjnius и android.
-        requirements = python3,kivy,requests
+        # Используем стабильную версию Kivy
+        requirements = python3,kivy==2.2.1,requests
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
-        android.ndk = 25b
+        # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: NDK r23b. Это обходит баг с путями clang в рецепте libthorvg.
+        android.ndk = 23b
         android.accept_sdk_license = True
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        # Ветка develop содержит последние исправления багов парсера
-        p4a.branch = develop
+        p4a.branch = master
         EOF
     
     - name: Build APK
       run: |
-        echo "ПОЛНАЯ ОЧИСТКА КЭША (Критически важно для сброса сломанных зависимостей)..."
+        echo "Полная очистка кэша Buildozer (удаляем старый NDK r25b)..."
         rm -rf ~/.buildozer
         
         buildozer -v android debug 2>&1 | tee build_output.log || true

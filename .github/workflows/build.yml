@@ -48,25 +48,35 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
-        # КЛЮЧЕВОЕ РЕШЕНИЕ: Kivy 2.2.1 НЕ использует libthorvg!
-        # Это позволяет нам использовать NDK 27+, избегая сломанного рецепта.
-        requirements = python3,kivy==2.2.1,requests
+        
+        # ТРОЙНОЙ ЗАМОК ОТ PYTHON 3.14:
+        # 1. Жестко задаем версию python3 в требованиях
+        requirements = python3==3.11.9,kivy==2.2.1,requests
+        
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
-        # NDK 27c удовлетворяет требованию "минимум 25" и стабилен для API 33
-        android.ndk = 27c
+        
+        # 2. Используем NDK 25b (удовлетворяет требованию ">= 25" и идеален для Kivy 2.2.1)
+        android.ndk = 25b
         android.accept_sdk_license = True
+        
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        p4a.branch = master
+        
+        # 3. Используем ветку develop (она корректно обрабатывает фиксацию версий Python)
+        p4a.branch = develop
+        
+        # 4. Дополнительная явная директива для p4a
+        p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        echo "Полная очистка кэша Buildozer (удаляем старые NDK)..."
+        echo "КРИТИЧЕСКИ ВАЖНО: Полное уничтожение кэша для удаления следов Python 3.14..."
         rm -rf ~/.buildozer
+        rm -rf .buildozer
         
         buildozer -v android debug 2>&1 | tee build_output.log || true
         

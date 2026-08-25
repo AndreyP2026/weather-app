@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
     
     - name: Install system dependencies
       run: |
@@ -49,16 +49,15 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # ЗОЛОТОЙ СТАНДАРТ: Python 3.10.14 + Kivy 2.2.1
-        # Для 3.10 все Android-патчи (включая исправление grpmodule.c) применяются гарантированно и без ошибок.
-        # Явное указание hostpython3 предотвращает баг с автоматической подстановкой 3.14.
-        requirements = python3==3.10.14,hostpython3==3.10.14,kivy==2.2.1,requests
+        # МАГИЧЕСКАЯ КОМБИНАЦИЯ:
+        # 1. Фиксируем обе версии Python, чтобы применились патчи для grpmodule.c
+        requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
         
-        # NDK 25b - самая стабильная и проверенная версия для этой связки
+        # 2. NDK 25b - золотой стандарт для этой связки
         android.ndk = 25b
         android.accept_sdk_license = True
         
@@ -66,13 +65,14 @@ jobs:
         fullscreen = 0
         log_level = 2
         
-        # Ветка develop содержит самые свежие и надежные исправления для сопоставления версий и применения патчей
-        p4a.branch = develop
+        # 3. КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: используем стабильный релиз от января 2024 года.
+        # В нем НЕТ сломанного рецепта libthorvg, который вызывает IndexError в новых ветках.
+        p4a.branch = 2024.01.20
         EOF
     
     - name: Build APK
       run: |
-        echo "КРИТИЧЕСКИ ВАЖНО: Полная очистка кэша для удаления следов Python 3.11 и непропатченных исходников..."
+        echo "КРИТИЧЕСКИ ВАЖНО: Полная очистка кэша для удаления всех следов предыдущих неудачных сборок..."
         rm -rf ~/.buildozer
         rm -rf .buildozer
         

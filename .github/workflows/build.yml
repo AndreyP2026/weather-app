@@ -40,22 +40,27 @@ jobs:
     
     - name: Pre-clone and patch python-for-android
       run: |
-        echo "Предварительное клонирование python-for-android..."
+        echo "Клонирование python-for-android и применение критических патчей..."
         mkdir -p /home/runner/work/weather-app/weather-app/.buildozer/android/platform
         cd /home/runner/work/weather-app/weather-app/.buildozer/android/platform
         git clone -b master --single-branch https://github.com/kivy/python-for-android.git
         
+        # ПАТЧ 1: Отключаем сломанный рецепт libthorvg
         RECIPE_FILE="python-for-android/pythonforandroid/recipes/libthorvg/__init__.py"
         if [ -f "$RECIPE_FILE" ]; then
-            echo "Применение патча к рецепту libthorvg..."
-            echo 'import re' > patch.py
-            echo 'with open("'"$RECIPE_FILE"'", "r") as f: content = f.read()' >> patch.py
-            echo 'content = re.sub(r"(    def build_arch\(self, arch\):).*?(\n    def |\nclass |\Z)", r"\1\n        pass  # PATCHED\n\2", content, flags=re.DOTALL)' >> patch.py
-            echo 'with open("'"$RECIPE_FILE"'", "w") as f: f.write(content)' >> patch.py
-            echo 'print("Патч успешно применен.")' >> patch.py
-            python3 patch.py
-        else
-            echo "Рецепт libthorvg не найден, патч не требуется."
+            echo "Применение патча к libthorvg..."
+            sed -i 's/    def build_arch(self, arch):/    def build_arch(self, arch):\n        pass  # PATCHED: libthorvg not needed for Kivy 2.2.1\n    def _disabled_build_arch(self, arch):/' "$RECIPE_FILE"
+        fi
+        
+        # ПАТЧ 2: Фиксируем версию Python на 3.11.9 в рецепте python3
+        PYTHON_RECIPE="python-for-android/pythonforandroid/recipes/python3/__init__.py"
+        if [ -f "$PYTHON_RECIPE" ]; then
+            echo "Применение патча к python3 рецепту..."
+            # Находим строку с version и заменяем на 3.11.9
+            sed -i "s/version = .*/version = '3.11.9'/" "$PYTHON_RECIPE"
+            # Также патчим url, если он использует переменную version
+            sed -i "s|'https://www.python.org/ftp/python/' + self.version|'https://www.python.org/ftp/python/3.11.9'|" "$PYTHON_RECIPE"
+            echo "Патч python3 применен."
         fi
 
     - name: Create buildozer.spec
@@ -81,12 +86,11 @@ jobs:
         fullscreen = 0
         log_level = 2
         p4a.branch = master
-        p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        echo "Очистка кэша сборки, но СОХРАНЕНИЕ пропатченной папки python-for-android..."
+        echo "Очистка кэша сборки..."
         rm -rf ~/.buildozer
         rm -rf /home/runner/work/weather-app/weather-app/.buildozer/android/platform/build-*
         rm -rf /home/runner/work/weather-app/weather-app/bin

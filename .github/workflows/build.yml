@@ -49,7 +49,7 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # Проверенная комбинация:
+        # Без жесткой версии python3, чтобы p4a корректно применил все Android-патчи
         requirements = python3,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
@@ -64,9 +64,9 @@ jobs:
         fullscreen = 0
         log_level = 2
         
-        # ИСПРАВЛЕНИЕ: Используем реальный, существующий стабильный тег релиза.
-        # В нем есть все патчи для Android и НЕТ сломанного рецепта libthorvg.
-        p4a.branch = 2023.12.20
+        # ИСПРАВЛЕНИЕ: Используем РЕАЛЬНЫЙ существующий стабильный тег релиза.
+        # В этой версии НЕТ сломанного рецепта libthorvg, который вызывает IndexError.
+        p4a.branch = 2023.07.20
         EOF
     
     - name: Build APK

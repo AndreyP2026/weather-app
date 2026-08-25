@@ -49,15 +49,17 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # ЖЁСТКАЯ ФИКСАЦИЯ: указываем версию И для целевого, И для хост-питона.
-        # Kivy 2.2.1 НЕ использует libthorvg, поэтому мы избегаем бага с этим рецептом.
-        requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.2.1,requests
+        # КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Убираем "==3.11.9"!
+        # Просто "python3" позволяет buildozer корректно применить все Android-патчи 
+        # к исходному коду (включая исправление ошибки grpmodule.c).
+        # Жесткая версия ломала механизм патчинга.
+        requirements = python3,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
         
-        # NDK 25b: удовлетворяет требованию ">= 25" и является самым стабильным для этой связки
+        # NDK 25b - самая стабильная и проверенная версия для этой связки
         android.ndk = 25b
         android.accept_sdk_license = True
         
@@ -69,7 +71,7 @@ jobs:
     
     - name: Build APK
       run: |
-        echo "КРИТИЧЕСКИ ВАЖНО: Полное уничтожение кэша для удаления следов Python 3.14 и сломанных сборок..."
+        echo "КРИТИЧЕСКИ ВАЖНО: Полная очистка кэша для удаления некорректно скачанного Python без патчей..."
         rm -rf ~/.buildozer
         rm -rf .buildozer
         

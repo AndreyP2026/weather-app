@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.10'
     
     - name: Install system dependencies
       run: |
@@ -49,11 +49,10 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Убираем "==3.11.9"!
-        # Просто "python3" позволяет buildozer корректно применить все Android-патчи 
-        # к исходному коду (включая исправление ошибки grpmodule.c).
-        # Жесткая версия ломала механизм патчинга.
-        requirements = python3,kivy==2.2.1,requests
+        # ЗОЛОТОЙ СТАНДАРТ: Python 3.10.14 + Kivy 2.2.1
+        # Для 3.10 все Android-патчи (включая исправление grpmodule.c) применяются гарантированно и без ошибок.
+        # Явное указание hostpython3 предотвращает баг с автоматической подстановкой 3.14.
+        requirements = python3==3.10.14,hostpython3==3.10.14,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
@@ -66,12 +65,14 @@ jobs:
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        p4a.branch = master
+        
+        # Ветка develop содержит самые свежие и надежные исправления для сопоставления версий и применения патчей
+        p4a.branch = develop
         EOF
     
     - name: Build APK
       run: |
-        echo "КРИТИЧЕСКИ ВАЖНО: Полная очистка кэша для удаления некорректно скачанного Python без патчей..."
+        echo "КРИТИЧЕСКИ ВАЖНО: Полная очистка кэша для удаления следов Python 3.11 и непропатченных исходников..."
         rm -rf ~/.buildozer
         rm -rf .buildozer
         

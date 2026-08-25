@@ -40,35 +40,20 @@ jobs:
     
     - name: Pre-clone and patch python-for-android
       run: |
-        echo "Предварительное клонирование python-for-android для применения критических патчей..."
+        echo "Предварительное клонирование python-for-android..."
         mkdir -p /home/runner/work/weather-app/weather-app/.buildozer/android/platform
         cd /home/runner/work/weather-app/weather-app/.buildozer/android/platform
-        
-        # Клонируем актуальную ветку master (в ней есть все свежие исправления для Python 3.11)
         git clone -b master --single-branch https://github.com/kivy/python-for-android.git
         
-        # Хирургический патч: отключаем сломанный рецепт libthorvg.
-        # Поскольку мы используем Kivy 2.2.1, эта библиотека нам НЕ НУЖНА.
-        # Мы просто заменяем тело метода build_arch на 'pass', чтобы избежать IndexError.
         RECIPE_FILE="python-for-android/pythonforandroid/recipes/libthorvg/__init__.py"
         if [ -f "$RECIPE_FILE" ]; then
             echo "Применение патча к рецепту libthorvg..."
-            python3 << 'EOF'
-import re
-with open("python-for-android/pythonforandroid/recipes/libthorvg/__init__.py", "r") as f:
-    content = f.read()
-
-# Находим метод build_arch и заменяем его содержимое на 'pass'
-pattern = r'(    def build_arch\(self, arch\):)(.*?)(\n    def |\nclass |\Z)'
-def replacer(match):
-    return match.group(1) + '\n        pass  # PATCHED: libthorvg not needed for Kivy 2.2.1\n' + match.group(3)
-
-content = re.sub(pattern, replacer, content, flags=re.DOTALL)
-
-with open("python-for-android/pythonforandroid/recipes/libthorvg/__init__.py", "w") as f:
-    f.write(content)
-print("Патч успешно применен.")
-EOF
+            echo 'import re' > patch.py
+            echo 'with open("'"$RECIPE_FILE"'", "r") as f: content = f.read()' >> patch.py
+            echo 'content = re.sub(r"(    def build_arch\(self, arch\):).*?(\n    def |\nclass |\Z)", r"\1\n        pass  # PATCHED\n\2", content, flags=re.DOTALL)' >> patch.py
+            echo 'with open("'"$RECIPE_FILE"'", "w") as f: f.write(content)' >> patch.py
+            echo 'print("Патч успешно применен.")' >> patch.py
+            python3 patch.py
         else
             echo "Рецепт libthorvg не найден, патч не требуется."
         fi
@@ -84,31 +69,25 @@ EOF
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # Стабильная связка, которая НЕ требует libthorvg
         requirements = python3,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
-        
-        # NDK 25b - золотой стандарт совместимости для этой конфигурации
         android.ndk = 25b
         android.accept_sdk_license = True
         
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        
-        # Указываем master, но Buildozer ПРОПУСТИТ клонирование, 
-        # так как мы уже предварительно создали эту папку с нашим патчем!
         p4a.branch = master
+        p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        echo "КРИТИЧЕСКИ ВАЖНО: Очистка кэша сборки, но СОХРАНЕНИЕ пропатченной папки python-for-android..."
+        echo "Очистка кэша сборки, но СОХРАНЕНИЕ пропатченной папки python-for-android..."
         rm -rf ~/.buildozer
-        # Удаляем только артефакты сборки, но НЕ трогаем папку python-for-android с нашим патчем!
         rm -rf /home/runner/work/weather-app/weather-app/.buildozer/android/platform/build-*
         rm -rf /home/runner/work/weather-app/weather-app/bin
         
@@ -119,7 +98,7 @@ EOF
           exit 1
         fi
     
-    - name: Upload APK artifact (если успешно)
+    - name: Upload APK artifact
       if: success()
       uses: actions/upload-artifact@v4
       with:
@@ -127,7 +106,7 @@ EOF
         path: bin/*.apk
         retention-days: 7
 
-    - name: Upload Full Error Log (если упало)
+    - name: Upload Full Error Log
       if: failure()
       uses: actions/upload-artifact@v4
       with:

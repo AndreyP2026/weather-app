@@ -49,24 +49,21 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # МАГИЧЕСКАЯ КОМБИНАЦИЯ:
-        # 1. python3==3.11.8: Версия, к которой патчи p4a применяются без ошибки grpmodule.c
-        # 2. hostpython3==3.11.8: Жестко фиксирует хост, избегая ошибки несовпадения с 3.14
-        # 3. kivy==2.2.1: Не использует libthorvg, избегая ошибки IndexError
-        requirements = python3==3.11.8,hostpython3==3.11.8,kivy==2.2.1,requests
+        # Используем Python 3.10 - он стабильнее поддерживается в p4a
+        requirements = python3==3.10.14,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
-        
-        # NDK 25b - единственная стабильная версия для этой связки
         android.ndk = 25b
         android.accept_sdk_license = True
         
         orientation = portrait
         fullscreen = 0
         log_level = 2
-        p4a.branch = master
+        
+        # ВАЖНО: Используем стабильный релиз, а не master
+        p4a.branch = 2024.1.1
         EOF
     
     - name: Build APK

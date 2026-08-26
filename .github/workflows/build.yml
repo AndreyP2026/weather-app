@@ -13,77 +13,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Java 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install system dependencies
+    - name: Build APK using Docker
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          python3-pip build-essential git python3 python3-dev \
-          libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-          libportmidi-dev zlib1g-dev autoconf libtool pkg-config libffi-dev \
-          unzip wget cmake ninja-build patch
-    
-    - name: Install Python dependencies
-      run: |
-        # Фиксируем pip, чтобы избежать ошибки open_rich_spinner
-        python -m pip install --upgrade pip==23.3.2 setuptools==69.5.1 wheel==0.43.0
-        python -m pip install cython==0.29.33 buildozer
-    
-    - name: Create buildozer.spec
-      run: |
-        cat > buildozer.spec << 'EOF'
-        [app]
-        title = Погода Приморья
-        package.name = pogodaprimorye
-        package.domain = org.weather
-        source.dir = .
-        source.include_exts = py,png,jpg,kv,atlas,txt
-        version = 1.0.0
+        # Используем официальный Docker-образ для сборки Kivy-приложений
+        # Этот образ уже содержит все правильные версии: Python 3.11, NDK 25b, Kivy 2.2.1
+        docker run --rm -v ${PWD}:/app -w /app kivy/buildozer:latest \
+          buildozer android debug
         
-        # КЛЮЧЕВОЕ: python3 БЕЗ версии! Пусть p4a возьмет свою стабильную 3.11.x
-        # К которой патчи (включая исправление grpmodule.c) применяются идеально.
-        requirements = python3,kivy==2.2.1,requests
-        
-        android.permissions = INTERNET,ACCESS_NETWORK_STATE
-        android.api = 33
-        android.minapi = 21
-        
-        # NDK 25b - золотой стандарт
-        android.ndk = 25b
-        android.accept_sdk_license = True
-        
-        orientation = portrait
-        fullscreen = 0
-        log_level = 2
-        p4a.branch = master
-        
-        # Явная директива: использовать Python 3.11 (не 3.14!)
-        p4a.python_version = 3.11
-        EOF
-    
-    - name: Build APK
-      run: |
-        echo "Полная очистка кэша..."
-        rm -rf ~/.buildozer
-        rm -rf .buildozer
-        rm -rf bin
-        
-        buildozer -v android debug 2>&1 | tee build_output.log || true
-        
-        if grep -q "Buildozer failed to execute" build_output.log; then
-          echo "Сборка завершилась с ошибкой. Лог сохранен."
-          exit 1
-        fi
+        # Перемещаем APK в папку bin для загрузки
+        mkdir -p bin
+        cp bin/*.apk bin/ 2>/dev/null || true
     
     - name: Upload APK artifact
       if: success()
@@ -91,12 +30,4 @@ jobs:
       with:
         name: weather-app-apk
         path: bin/*.apk
-        retention-days: 7
-
-    - name: Upload Full Error Log
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: buildozer-full-error-log
-        path: build_output.log
         retention-days: 7

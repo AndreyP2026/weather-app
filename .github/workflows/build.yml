@@ -8,21 +8,55 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:22.04
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Build APK using Docker
+    - name: Install dependencies
       run: |
-        # Используем официальный Docker-образ для сборки Kivy-приложений
-        # Этот образ уже содержит все правильные версии: Python 3.11, NDK 25b, Kivy 2.2.1
-        docker run --rm -v ${PWD}:/app -w /app kivy/buildozer:latest \
-          buildozer android debug
+        apt-get update
+        apt-get install -y \
+          python3 python3-pip python3-dev \
+          openjdk-17-jdk-headless \
+          git wget unzip \
+          build-essential \
+          libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+          libportmidi-dev zlib1g-dev autoconf libtool pkg-config libffi-dev \
+          cmake ninja-build patch
         
-        # Перемещаем APK в папку bin для загрузки
-        mkdir -p bin
-        cp bin/*.apk bin/ 2>/dev/null || true
+        # Устанавливаем правильные версии
+        python3 -m pip install --upgrade pip==23.3.2
+        python3 -m pip install cython==0.29.33 buildozer
+    
+    - name: Create buildozer.spec
+      run: |
+        cat > buildozer.spec << 'EOF'
+        [app]
+        title = Погода Приморья
+        package.name = pogodaprimorye
+        package.domain = org.weather
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas,txt
+        version = 1.0.0
+        requirements = python3,kivy==2.2.1,requests
+        android.permissions = INTERNET,ACCESS_NETWORK_STATE
+        android.api = 33
+        android.minapi = 21
+        android.ndk = 25b
+        android.accept_sdk_license = True
+        orientation = portrait
+        fullscreen = 0
+        log_level = 2
+        p4a.branch = master
+        EOF
+    
+    - name: Build APK
+      run: |
+        rm -rf ~/.buildozer
+        buildozer -v android debug
     
     - name: Upload APK artifact
       if: success()

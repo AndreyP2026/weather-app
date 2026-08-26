@@ -35,7 +35,7 @@ jobs:
     
     - name: Install Python dependencies
       run: |
-        # Фиксируем версии, чтобы избежать проблем с новыми версиями, требующими Python 3.13+
+        # Фиксируем pip, чтобы избежать ошибки open_rich_spinner
         python -m pip install --upgrade pip==23.3.2 setuptools==69.5.1 wheel==0.43.0
         python -m pip install cython==0.29.33 buildozer
     
@@ -50,16 +50,15 @@ jobs:
         source.include_exts = py,png,jpg,kv,atlas,txt
         version = 1.0.0
         
-        # ТРОЙНОЙ ЗАМОК ОТ PYTHON 3.13+:
-        # 1. Целевой Python
-        # 2. Хост-Python (который компилирует wheel-пакеты)
-        requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.2.1,requests
+        # КЛЮЧЕВОЕ: python3 БЕЗ версии! Пусть p4a возьмет свою стабильную 3.11.x
+        # К которой патчи (включая исправление grpmodule.c) применяются идеально.
+        requirements = python3,kivy==2.2.1,requests
         
         android.permissions = INTERNET,ACCESS_NETWORK_STATE
         android.api = 33
         android.minapi = 21
         
-        # NDK 25b - золотой стандарт совместимости
+        # NDK 25b - золотой стандарт
         android.ndk = 25b
         android.accept_sdk_license = True
         
@@ -68,13 +67,13 @@ jobs:
         log_level = 2
         p4a.branch = master
         
-        # 3. Явная директива для python-for-android
+        # Явная директива: использовать Python 3.11 (не 3.14!)
         p4a.python_version = 3.11
         EOF
     
     - name: Build APK
       run: |
-        echo "АГРЕССИВНАЯ ОЧИСТКА КЭША (Удаляем все следы Python 3.13/3.14)..."
+        echo "Полная очистка кэша..."
         rm -rf ~/.buildozer
         rm -rf .buildozer
         rm -rf bin
